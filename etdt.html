@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小小汪的浏览器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: linear-gradient(-45deg, #667eea, #764ba2, #6B8DD6, #8E37D7);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        #controls {
+            display: flex;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(5px);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        #url {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            margin-right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        #url::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #url:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        #go {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #go:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+
+        #go:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        #go:hover:after {
+            transform: translateX(100%);
+        }
+
+        #playGame {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+            margin-left: 10px;
+        }
+        #go:hover, #playGame:hover {
+            background-color: #218838;
+        }
+        #browser {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            border: none;
+            margin: 0;
+            z-index: 1;
+        }
+        #game, #history {
+            display: none;
+        }
+        #game {
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+            background-color: #87CEEB;
+        }
+        #gameCanvas {
+            border: 1px solid #ccc;
+            background-color: #87CEEB;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #history {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: rgba(248, 249, 250, 0.9);
+            border-top: 1px solid #ccc;
+            max-height: 150px;
+            z-index: 1000;
+        }
+        .history-item {
+            padding: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .history-item:hover {
+            background-color: #e9ecef;
+        }
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 20px 0;
+        }
+        .game-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .game-button:hover {
+            background-color: #c82333;
+        }
+        #exitGame {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+            display: none;
+        }
+        #exitGame:hover {
+            background-color: #5a6268;
+            transform: scale(1.05);
+        }
+        .game-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .emoji-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .emoji {
+            position: absolute;
+            font-size: 40px;
+            animation: floatEmoji 8s linear infinite;
+            opacity: 0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .emoji::before {
+            content: attr(data-emoji);
+        }
+
+        @keyframes floatEmoji {
+            0% {
+                transform: translateY(120vh) translateX(-20px) scale(0.8) rotate(0deg);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.8;
+                transform: translateY(80vh) translateX(20px) scale(1) rotate(10deg);
+            }
+            40% {
+                transform: translateY(60vh) translateX(-20px) scale(1.2) rotate(-10deg);
+            }
+            60% {
+                transform: translateY(40vh) translateX(20px) scale(1) rotate(10deg);
+            }
+            80% {
+                transform: translateY(20vh) translateX(-20px) scale(1.2) rotate(-10deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-20vh) translateX(20px) scale(0.8) rotate(0deg);
+                opacity: 0;
+            }
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 20px;
+            }
+
+            #controls {
+                flex-direction: column;
+            }
+
+            #url {
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+
+            .emoji {
+                font-size: 30px;
+            }
+        }
+
+        /* 添加聊天容器样式 */
+        .chat-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            width: 80%;
+            max-width: 600px;
+            height: 70vh;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chatInput {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        #chatInput::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: rgba(33, 150, 243, 0.3);
+            margin-left: auto;
+            color: white;
+        }
+
+        .ai-message {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: auto;
+            color: white;
+        }
+
+        .firework-text {
+            position: fixed;
+            color: white;
+            font-size: 32px;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8),
+                         0 0 25px rgba(255, 192, 203, 0.8);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s ease, transform 1s ease;
+            font-family: "华文圆体", "Microsoft YaHei", sans-serif;
+            z-index: 2;
+            transform: scale(0.8);
+            letter-spacing: 2px;
+        }
+
+        .firework-text.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-10px) scale(1.05); }
+        }
+    </style>
+</head>
+<body onload="checkOnlineStatus()">
+    <div class="emoji-container"></div>
+    <div class="container">
+        <h1>小小汪的浏览器</h1>
+        <div id="controls">
+            <input type="text" id="url" placeholder="欢迎使用小小汪的浏览器">
+            <button id="go">搜索</button>
+        </div>
+        <div class="divider"></div>
+        <div style="display: flex; gap: 10px;">
+            <button id="playGame" class="game-button">小汪快跑🐾</button>
+            <button id="fireworksButton" class="game-button" style="background-color: #FF5722;">和小小汪放烟花🎇</button>
+            <button id="openChat" class="game-button" style="background-color: #2196F3;">找小小汪聊天💕</button>
+        </div>
+    </div>
+    <div class="game-container" id="game">
+        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">小汪快跑🐾</h2>
+            <button id="exitGame" class="game-button" style="background-color: #6c757d;">退出游戏</button>
+        </div>
+        <canvas id="gameCanvas" width="600" height="200"></canvas>
+    </div>
+    <iframe id="browser"></iframe>
+    <div id="history"></div>
+
+    <!-- 添加聊天界面 -->
+    <div class="chat-container" id="chat">
+        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: white; margin: 0;">和小小汪聊天💕</h2>
+            <button id="exitChat" class="game-button" style="background-color: #6c757d;">退出聊天</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-container">
+            <input type="text" id="chatInput" placeholder="和小小汪说点什么...">
+            <button id="sendMessage" class="game-button" style="background-color: #2196F3;">发送</button>
+        </div>
+    </div>
+
+    <script>
+        let gameInstance = null;
+
+        class GameAudio {
+            constructor() {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+                this.volume = 0.2;
+                this.bgmVolume = 0.35;
+                this.bgmPlaying = false;
+                this.lastPlayTime = 0;
+                this.currentAudioNodes = [];
+                this.startBGM();
+            }
+
+            startBGM() {
+                if (this.bgmPlaying) return;
+                this.bgmPlaying = true;
+
+                const playNote = (note, time, duration) => {
+                    const osc = this.context.createOscillator();
+                    const gain = this.context.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.context.destination);
+                    
+                    this.currentAudioNodes.push(osc, gain);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.value = note;
+                    
+                    const startTime = this.context.currentTime + time;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(this.bgmVolume, startTime + 0.05);
+                    gain.gain.setValueAtTime(this.bgmVolume, startTime + duration - 0.05);
+                    gain.gain.linearRampToValueAtTime(0, startTime + duration);
+                    
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                    
+                    osc.onended = () => {
+                        const index = this.currentAudioNodes.indexOf(osc);
+                        if (index > -1) {
+                            this.currentAudioNodes.splice(index, 2);
+                        }
+                    };
+                };
+
+                const melody = [
+                    {note: 523.25, time: 0.0, duration: 0.2},
+                    {note: 587.33, time: 0.2, duration: 0.2},
+                    {note: 659.25, time: 0.4, duration: 0.4},
+                    {note: 698.46, time: 0.8, duration: 0.4},
+                    
+                    {note: 783.99, time: 1.2, duration: 0.4},
+                    {note: 880.00, time: 1.6, duration: 0.4},
+                    {note: 987.77, time: 2.0, duration: 0.8},
+                    
+                    {note: 1046.50, time: 3.0, duration: 0.2},
+                    {note: 987.77, time: 3.2, duration: 0.2},
+                    {note: 880.00, time: 3.4, duration: 0.2},
+                    {note: 783.99, time: 3.6, duration: 0.2},
+                    
+                    {note: 659.25, time: 4.0, duration: 0.3},
+                    {note: 659.25, time: 4.3, duration: 0.3},
+                    {note: 783.99, time: 4.6, duration: 0.6},
+                    
+                    {note: 698.46, time: 5.4, duration: 0.2},
+                    {note: 783.99, time: 5.6, duration: 0.2},
+                    {note: 880.00, time: 5.8, duration: 0.2},
+                    {note: 987.77, time: 6.0, duration: 0.4},
+                    {note: 1046.50, time: 6.4, duration: 0.8},
+                    
+                    {note: 783.99, time: 7.4, duration: 0.4},
+                    {note: 659.25, time: 7.4, duration: 0.4},
+                    {note: 523.25, time: 7.4, duration: 0.4},
+                ];
+
+                const bassLine = [
+                    {note: 261.63, time: 0.0, duration: 0.8},
+                    {note: 293.66, time: 1.2, duration: 0.8},
+                    {note: 329.63, time: 2.4, duration: 0.8},
+                    {note: 349.23, time: 3.6, duration: 0.8},
+                    {note: 392.00, time: 4.8, duration: 0.8},
+                    {note: 440.00, time: 6.0, duration: 0.8},
+                    {note: 493.88, time: 7.2, duration: 1.0},
+                ];
+
+                const playMelody = () => {
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastPlayTime < 9000) return;
+                    
+                    this.lastPlayTime = currentTime;
+                    
+                    melody.forEach(({note, time, duration}) => {
+                        playNote(note, time, duration);
+                    });
+                    
+                    bassLine.forEach(({note, time, duration}) => {
+                        playNote(note, time, duration * 1.2);
+                    });
+                    
+                    if (this.bgmPlaying) {
+                        setTimeout(playMelody, 9000);
+                    }
+                };
+
+                playMelody();
+            }
+
+            playJump() {
+                const jumpOsc = this.context.createOscillator();
+                const jumpGain = this.context.createGain();
+                
+                jumpOsc.connect(jumpGain);
+                jumpGain.connect(this.context.destination);
+                
+                jumpOsc.type = 'sine';
+                jumpOsc.frequency.setValueAtTime(880, this.context.currentTime);
+                jumpOsc.frequency.exponentialRampToValueAtTime(440, this.context.currentTime + 0.1);
+                
+                jumpGain.gain.setValueAtTime(0, this.context.currentTime);
+                jumpGain.gain.linearRampToValueAtTime(this.volume * 0.5, this.context.currentTime + 0.01);
+                jumpGain.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.1);
+                
+                jumpOsc.start();
+                jumpOsc.stop(this.context.currentTime + 0.1);
+            }
+
+            stopBGM() {
+                this.bgmPlaying = false;
+                this.currentAudioNodes.forEach(node => {
+                    try {
+                        node.disconnect();
+                        if (node.stop) {
+                            node.stop(0);
+                        }
+                    } catch(e) { }
+                });
+                this.currentAudioNodes = [];
+                
+                if (this.context && this.context.state !== 'closed') {
+                    this.context.close();
+                }
+            }
+
+            playHit() {
+                this.createOscillator(440, 'square', 0.1);
+                setTimeout(() => this.createOscillator(349.23, 'square', 0.1), 50);
+            }
+
+            playGameOver() {
+                this.stopBGM();
+                const notes = [
+                    {freq: 523.25, time: 0},
+                    {freq: 493.88, time: 0.2},
+                    {freq: 466.16, time: 0.4},
+                    {freq: 440, time: 0.6}
+                ];
+                
+                notes.forEach(({freq, time}) => {
+                    setTimeout(() => this.createOscillator(freq, 'sine', 0.3), time * 1000);
+                });
+            }
+
+            playPoint() {
+                this.createOscillator(1046.50, 'sine', 0.1);
+                setTimeout(() => this.createOscillator(1174.66, 'sine', 0.1), 100);
+            }
+
+            createOscillator(frequency, type, duration) {
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                
+                oscillator.type = type;
+                oscillator.frequency.value = frequency;
+                gainNode.gain.value = this.volume;
+
+                gainNode.gain.setValueAtTime(0, this.context.currentTime);
+                gainNode.gain.linearRampToValueAtTime(this.volume, this.context.currentTime + 0.01);
+                gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + duration);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.context.destination);
+
+                oscillator.start();
+                oscillator.stop(this.context.currentTime + duration);
+            }
+        }
+
+        class DinoGame {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.context = canvas.getContext('2d');
+                this.clouds = [];
+                this.isRunning = true;
+                this.reset();
+                this.bindEvents();
+                this.loadColors();
+                this.audio = new GameAudio();
+                this.lastScoreSound = 0;
+                
+                for (let i = 0; i < 3; i++) {
+                    this.clouds.push({
+                        x: Math.random() * this.canvas.width,
+                        y: 30 + Math.random() * 60,
+                        size: 0.5 + Math.random() * 1,
+                        speed: 0.5 + Math.random() * 1
+                    });
+                }
+            }
+
+            loadColors() {
+                this.colors = {
+                    dino: '#535353',
+                    cactus: '#2E7D32',
+                    ground: '#C2C2C2',
+                    groundLines: '#999999',
+                    bird: '#333333'
+                };
+            }
+
+            drawDino(x, y) {
+                const ctx = this.context;
+                ctx.fillStyle = this.colors.dino;
+                ctx.beginPath();
+                
+                ctx.fillRect(x + 5, y - 20, 20, 20);
+                
+                ctx.fillRect(x + 15, y - 30, 15, 10);
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(x + 25, y - 28, 3, 3);
+                
+                ctx.fillStyle = this.colors.dino;
+                if (this.frame % 20 < 10) {
+                    ctx.fillRect(x + 5, y - 3, 4, 8);
+                    ctx.fillRect(x + 15, y - 3, 4, 8);
+                } else {
+                    ctx.fillRect(x + 7, y - 3, 4, 8);
+                    ctx.fillRect(x + 17, y - 3, 4, 8);
+                }
+            }
+
+            drawCactus(x, y) {
+                const ctx = this.context;
+                ctx.fillStyle = this.colors.cactus;
+                
+                ctx.fillRect(x + 7, y - 20, 6, 20);
+                
+                ctx.fillRect(x, y - 15, 7, 5);
+                ctx.fillRect(x + 2, y - 18, 3, 8);
+                
+                ctx.fillRect(x + 13, y - 12, 7, 5);
+                ctx.fillRect(x + 15, y - 15, 3, 8);
+            }
+
+            drawGround() {
+                const ctx = this.context;
+                
+                ctx.fillStyle = this.colors.ground;
+                ctx.fillRect(0, this.ground.y, this.canvas.width, 20);
+                
+                ctx.strokeStyle = this.colors.groundLines;
+                ctx.beginPath();
+                for (let i = 0; i < this.canvas.width; i += 15) {
+                    ctx.moveTo(i, this.ground.y + 5);
+                    ctx.lineTo(i + 10, this.ground.y + 5);
+                }
+                ctx.stroke();
+            }
+
+            drawCloud(x, y, size = 1) {
+                const ctx = this.context;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                
+                const baseSize = 25;
+                
+                ctx.arc(x, y, baseSize * size, 0, Math.PI * 2);
+                ctx.arc(x + 20 * size, y - 10 * size, baseSize * 0.8 * size, 0, Math.PI * 2);
+                ctx.arc(x + 35 * size, y, baseSize * size, 0, Math.PI * 2);
+                ctx.arc(x + 20 * size, y + 10 * size, baseSize * 0.8 * size, 0, Math.PI * 2);
+                
+                ctx.arc(x + 45 * size, y, baseSize * 0.7 * size, 0, Math.PI * 2);
+                ctx.arc(x - 15 * size, y, baseSize * 0.7 * size, 0, Math.PI * 2);
+                
+                ctx.fill();
+            }
+
+            drawBird(x, y) {
+                const ctx = this.context;
+                ctx.fillStyle = this.colors.bird;
+                ctx.beginPath();
+
+                ctx.fillRect(x + 5, y - 10, 20, 10);
+
+                ctx.fillRect(x + 25, y - 15, 8, 8);
+
+                if (this.frame % 20 < 10) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 5, y - 10);
+                    ctx.lineTo(x + 15, y - 20);
+                    ctx.lineTo(x + 25, y - 10);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 5, y);
+                    ctx.lineTo(x + 15, y + 10);
+                    ctx.lineTo(x + 25, y);
+                    ctx.fill();
+                }
+            }
+
+            reset() {
+                this.dino = {
+                    x: 50,
+                    y: 160,
+                    width: 40,
+                    height: 40,
+                    dy: 0,
+                    gravity: 0.5,
+                    jumpForce: -11,
+                    health: 100,
+                    isJumping: false
+                };
+                this.ground = { y: 160 };
+                this.obstacles = [];
+                this.frame = 0;
+                this.gameOver = false;
+                this.score = 0;
+                this.clouds = [];
+                this.isRunning = true;
+            }
+
+            bindEvents() {
+                this.handleKeyDown = this.handleKeyDown.bind(this);
+                this.handleKeyUp = this.handleKeyUp.bind(this);
+                document.addEventListener('keydown', this.handleKeyDown);
+                document.addEventListener('keyup', this.handleKeyUp);
+            }
+
+            removeEvents() {
+                document.removeEventListener('keydown', this.handleKeyDown);
+                document.removeEventListener('keyup', this.handleKeyUp);
+            }
+
+            handleKeyDown(event) {
+                if (event.code === 'Space') {
+                    event.preventDefault();
+                    if (this.gameOver) {
+                        this.reset();
+                        this.start();
+                        return;
+                    }
+                    if (!this.dino.isJumping && this.dino.y >= 150) {
+                        this.dino.isJumping = true;
+                        this.dino.dy = this.dino.jumpForce;
+                        this.audio.playJump();
+                    }
+                }
+            }
+
+            handleKeyUp(event) {
+                if (event.code === 'Space') {
+                    if (this.dino.dy < -2) {
+                        this.dino.dy = -2;
+                    }
+                }
+            }
+
+            update() {
+                if (this.gameOver) return;
+
+                this.frame++;
+                this.score++;
+
+                if (this.frame % 100 === 0) {
+                    this.clouds.push({
+                        x: this.canvas.width + 50,
+                        y: 20 + Math.random() * 80,
+                        size: 0.7 + Math.random() * 0.6,
+                        speed: 0.3 + Math.random() * 0.5
+                    });
+                }
+
+                for (let i = this.clouds.length - 1; i >= 0; i--) {
+                    const cloud = this.clouds[i];
+                    cloud.x -= cloud.speed;
+
+                    if (cloud.x < -150) {
+                        this.clouds.splice(i, 1);
+                    }
+                }
+
+                this.dino.dy += this.dino.gravity;
+                this.dino.y += this.dino.dy;
+
+                if (this.dino.y > 150) {
+                    this.dino.y = 150;
+                    this.dino.dy = 0;
+                    this.dino.isJumping = false;
+                }
+
+                if (this.frame % 100 === 0) {
+                    const isBird = Math.random() < 0.3;
+                    this.obstacles.push({
+                        x: 600,
+                        y: isBird ? 100 + Math.random() * 40 : 160,
+                        width: 30,
+                        height: isBird ? 20 : 40,
+                        type: isBird ? 'bird' : 'cactus'
+                    });
+                }
+
+                for (let i = this.obstacles.length - 1; i >= 0; i--) {
+                    const obstacle = this.obstacles[i];
+                    obstacle.x -= obstacle.type === 'bird' ? 5 : 4;
+
+                    if (this.checkCollision(this.dino, obstacle)) {
+                        this.dino.health -= 10;
+                        this.audio.playHit();
+                        this.obstacles.splice(i, 1);
+                        if (this.dino.health <= 0) {
+                            this.gameOver = true;
+                            this.audio.playGameOver();
+                            alert(`游戏结束！得分：${Math.floor(this.score / 10)}`);
+                            return;
+                        }
+                    }
+
+                    if (obstacle.x < -20) {
+                        this.obstacles.splice(i, 1);
+                    }
+                }
+            }
+
+            checkCollision(dino, obstacle) {
+                return dino.x < obstacle.x + obstacle.width &&
+                    dino.x + dino.width > obstacle.x &&
+                    dino.y < obstacle.y + obstacle.height &&
+                    dino.y + dino.height > obstacle.y;
+            }
+
+            draw() {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.clouds.forEach(cloud => {
+                    this.drawCloud(cloud.x, cloud.y, cloud.size);
+                });
+
+                this.context.fillStyle = 'black';
+                this.context.font = '20px Arial';
+                this.context.fillText(`得分: ${Math.floor(this.score / 10)}`, 450, 30);
+
+                this.drawDino(this.dino.x, this.dino.y);
+
+                this.drawGround();
+
+                this.obstacles.forEach(obstacle => {
+                    if (obstacle.type === 'bird') {
+                        this.drawBird(obstacle.x, obstacle.y);
+                    } else {
+                        this.drawCactus(obstacle.x, obstacle.y);
+                    }
+                });
+
+                this.context.fillStyle = '#ddd';
+                this.context.fillRect(10, 10, 200, 20);
+
+                const gradient = this.context.createLinearGradient(10, 0, 210, 0);
+                if (this.dino.health > 60) {
+                    gradient.addColorStop(0, '#4CAF50');
+                    gradient.addColorStop(1, '#8BC34A');
+                } else if (this.dino.health > 30) {
+                    gradient.addColorStop(0, '#FFC107');
+                    gradient.addColorStop(1, '#FFD54F');
+                } else {
+                    gradient.addColorStop(0, '#f44336');
+                    gradient.addColorStop(1, '#FF5252');
+                }
+
+                this.context.fillStyle = gradient;
+                this.context.fillRect(10, 10, this.dino.health * 2, 20);
+
+                this.context.strokeStyle = '#666';
+                this.context.lineWidth = 2;
+                this.context.strokeRect(10, 10, 200, 20);
+
+                this.context.fillStyle = '#000';
+                this.context.font = '14px Arial';
+                this.context.textAlign = 'center';
+                this.context.fillText(
+                    `${this.dino.health}/100`,
+                    110,
+                    25
+                );
+            }
+
+            gameLoop() {
+                if (this.isRunning && !this.gameOver) {
+                    this.update();
+                    this.draw();
+                    requestAnimationFrame(() => this.gameLoop());
+                }
+            }
+
+            start() {
+                this.gameLoop();
+            }
+
+            stop() {
+                this.isRunning = false;
+                this.audio.stopBGM();
+            }
+        }
+
+        function checkOnlineStatus() {
+            if (navigator.onLine) {
+                document.getElementById('game').style.display = 'none';
+                document.getElementById('browser').style.display = 'block';
+                document.querySelector('.container').style.display = 'flex';
+            } else {
+                document.getElementById('game').style.display = 'flex';
+                document.getElementById('browser').style.display = 'none';
+                document.querySelector('.container').style.display = 'none';
+                startGame();
+            }
+        }
+
+        function startGame() {
+            if (gameInstance) {
+                gameInstance.removeEvents();
+            }
+            const canvas = document.getElementById('gameCanvas');
+            gameInstance = new DinoGame(canvas);
+            gameInstance.start();
+        }
+
+        function showGame() {
+            document.querySelector('.container').style.display = 'none';
+            document.getElementById('game').style.display = 'flex';
+            document.getElementById('browser').style.display = 'none';
+            document.getElementById('exitGame').style.display = 'inline-block';
+            document.getElementById('playGame').style.display = 'none';
+            startGame();
+        }
+
+        function exitGame() {
+            if (gameInstance) {
+                if (gameInstance.audio) {
+                    gameInstance.audio.stopBGM();
+                }
+                gameInstance.isRunning = false;
+                gameInstance.removeEvents();
+                gameInstance = null;
+            }
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('playGame').style.display = 'inline-block';
+            document.getElementById('exitGame').style.display = 'none';
+            document.querySelector('.container').style.display = 'flex';
+        }
+
+        document.getElementById('exitGame').addEventListener('click', exitGame);
+
+        function addHistory(url) {
+            var historyDiv = document.getElementById('history');
+            historyDiv.style.display = 'flex';
+            var historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.textContent = url;
+            historyItem.addEventListener('click', function() {
+                document.getElementById('url').value = url;
+                document.getElementById('browser').src = url;
+                document.getElementById('browser').style.display = 'block';
+            });
+            historyDiv.insertBefore(historyItem, historyDiv.firstChild);
+        }
+
+        window.addEventListener('online', checkOnlineStatus);
+        window.addEventListener('offline', checkOnlineStatus);
+
+        document.getElementById('go').addEventListener('click', function() {
+            var url = document.getElementById('url').value;
+            if (!url) return;
+
+            document.querySelector('.container').style.display = 'none';
+
+            url = url.replace(/^(https?:\/\/)?(www\.)?/, '');
+            
+            if (/^(\d{1,3}\.){3}\d{1,3}$/.test(url) || url.startsWith('localhost')) {
+                url = 'http://' + url;
+            } else {
+                url = 'https://' + url;
+            }
+
+            try {
+                document.getElementById('browser').src = url;
+                document.getElementById('browser').style.display = 'block';
+                
+                document.getElementById('browser').onerror = function() {
+                    alert('无法访问该网址，请检查网址是否正确');
+                };
+                
+                addHistory(url);
+            } catch(e) {
+                alert('访问出错: ' + e.message);
+            }
+        });
+
+        document.getElementById('url').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('go').click();
+            }
+        });
+
+        document.getElementById('playGame').addEventListener('click', showGame);
+
+        function createEmojis() {
+            const container = document.querySelector('.emoji-container');
+            const emojis = ['🐱', '🐰', '🐶', '🦊', '🐼', '🐨', '🦁', '🐯', '🐭', '🦔'];
+            const emojiCount = 8;
+
+            for (let i = 0; i < emojiCount; i++) {
+                const emoji = document.createElement('div');
+                emoji.className = 'emoji';
+                emoji.setAttribute('data-emoji', emojis[Math.floor(Math.random() * emojis.length)]);
+                
+                // 随机水平位置
+                emoji.style.left = `${Math.random() * 100}%`;
+                
+                // 减少初始动画延迟
+                emoji.style.animationDelay = `${Math.random() * 3}s`;
+                
+                // 减少动画持续时间
+                emoji.style.animationDuration = `${8 + Math.random() * 4}s`;
+                
+                container.appendChild(emoji);
+            }
+        }
+
+        // 页面加载时立即创建表情
+        createEmojis();
+
+        // 减少刷新间隔
+        setInterval(() => {
+            const container = document.querySelector('.emoji-container');
+            container.innerHTML = '';
+            createEmojis();
+        }, 12000);
+
+        function getXiaoWangReply(message) {
+            // 关键词回复列表
+            const keywords = {
+                '你好': ['你好呀！我是小小汪~ 😊', '嗨嗨，今天想和我聊什么呢？ 🤗', '终于等到你来找我聊天啦！ 😄', '你好！今天过得怎么样？ 🌞'],
+                '再见': ['下次再来找我玩哦！ 👋', '拜拜，要想我哦~ 😘', '记得常来看看我！ 🐶', '再见！期待下次聊天！ 🌟'],
+                '名字': ['我叫小小汪，是一个可爱的小朋友！ 🐾', '大家都叫我小小汪，很高兴认识你！ 😊', '我是小小汪，想和你做朋友~ 🐕', '小小汪是我的名字！ 🐶'],
+                '吃': ['我也喜欢吃好吃的！ 🍔', '要不要一起去吃好吃的呀？ 🍕', '你喜欢吃什么呀？我最喜欢美味的食物！ 🍣', '吃东西真开心，你呢？ 🍰'],
+                '玩': ['我们一起玩小汪快跑吧！ 🦖', '和你玩真开心！ 🎮', '要不要玩个游戏？我最喜欢玩接飞盘！ 🥏', '玩游戏是我最喜欢的事情！ 🎲'],
+                '难过': ['不要难过啦，让我陪你玩吧！ 🤗', '摸摸头，会好起来的！ 🐾', '我给你讲个开心的事情好不好？ 😊', '我在这里陪着你，不要难过哦！ 💖'],
+                '无聊': ['那我陪你聊天吧！ 🗣️', '我们来玩游戏吧！ 🎮', '我给你讲个有趣的故事好不好？ 📖', '无聊的时候可以找我聊天哦！ 🐶'],
+                '爱你': ['我也最喜欢你啦！ 💖', '你真好，我们永远是好朋友！ 🐾', '你是我最好的朋友！ 😊', '我很开心能和你聊天！ 🐕'],
+                '生气': ['不要生气啦，我陪你聊天好不好？ 🤗', '生气对身体不好，深呼吸~ 🌬️', '让我逗你开心吧！ 😄', '生气的话我会很难过的... 😢'],
+                '累': ['要好好休息哦！ 🛌', '累了就休息一下吧，我在这里陪你~ 🐾', '要照顾好自己哦！ 💖', '休息一下，明天会更好！ 🌞'],
+                '笑话': ['你知道吗？我最擅长讲笑话啦！ 😂', '想听我讲个有趣的事情吗？ 🤔', '让我想想有什么好笑的... 😆'],
+                '学习': ['学习要劳逸结合哦！ 📚', '休息一下再继续加油！ 💪', '你已经很棒啦！ 🌟', '学习的时候要注意休息哦！ 🛌'],
+                '天气': ['今天天气真好呢！ 🌞', '不管天气怎样，心情都要好好的！ 😊', '和你聊天的每一天都是好天气~ 🌈', '今天天气不错，适合出去玩！ 🌳'],
+                '喜欢': ['我也喜欢你哦！ 💖', '你真好，我最喜欢和你聊天了！ 🐾', '喜欢和你在一起的每一刻！ 😊', '和你在一起真开心！ 🐕'],
+                '烦恼': ['有什么烦恼可以告诉我哦！ 🤗', '我会尽量帮你解决的！ 💪', '别担心，我会陪着你！ 🐾', '说出来会轻松很多哦！ 😊'],
+                '梦想': ['我希望能和你一起去冒险！ 🗺️', '我的梦想是成为最好的朋友！ 🐾', '你有什么梦想呢？ 🌟', '梦想是要追逐的哦！ 💖'],
+                '趣事': ['我有很多有趣的事情可以分享哦！ 😄', '你想听我讲哪个趣事呢？ 🤔', '生活中总有很多有趣的事情！ 😊', '我今天遇到了一件有趣的事！ 🐶']
+            };
+
+            // 默认回复
+            const defaultReplies = [
+                '嘿嘿，真有趣！ 😄',
+                '继续说~ 🤗',
+                '原来是这样呀！ 😊',
+                '我在认真听你说话哦！ 🐾',
+                '要不要玩个游戏？ 🎮',
+                '你说得对！ 👍',
+                '和你聊天真开心！ 🐶',
+                '我喜欢和你聊天！ 💖',
+                '你真是个有趣的人！ 😄',
+                '让我想想... 🤔',
+                '说得好！ 🌟',
+                '我们继续聊吧~ 🗣️',
+                '我很高兴能和你聊天！ 😊'
+            ];
+
+            // 检查消息中是否包含关键词
+            for (let key in keywords) {
+                if (message.includes(key)) {
+                    const replies = keywords[key];
+                    return replies[Math.floor(Math.random() * replies.length)];
+                }
+            }
+
+            // 如果没有匹配的关键词，返回默认回复
+            return defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage(message, true);
+            input.value = '';
+
+            // 延迟一下再回复，模拟思考
+            setTimeout(() => {
+                const reply = getXiaoWangReply(message);
+                addMessage(reply, false);
+            }, 1000);
+        }
+
+        // 添加聊天相关的函数
+        function showChat() {
+            document.querySelector('.container').style.display = 'none';
+            document.getElementById('chat').style.display = 'flex';
+            document.getElementById('browser').style.display = 'none';
+            document.getElementById('exitChat').style.display = 'inline-block';
+            document.getElementById('openChat').style.display = 'none';
+        }
+
+        function exitChat() {
+            document.getElementById('chat').style.display = 'none';
+            document.getElementById('openChat').style.display = 'inline-block';
+            document.getElementById('exitChat').style.display = 'none';
+            document.querySelector('.container').style.display = 'flex';
+        }
+
+        function addMessage(message, isUser) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // 添加事件监听器
+        document.getElementById('openChat').addEventListener('click', showChat);
+        document.getElementById('exitChat').addEventListener('click', exitChat);
+        document.getElementById('sendMessage').addEventListener('click', sendMessage);
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 烟花效果
+        let fireworksStarted = false;
+
+        function createFirework(x, y) {
+            const colors = ['#FF5733', '#FFBD33', '#DBFF33', '#75FF33', '#33FF57', '#33FFBD', '#33DBFF', '#3375FF', '#5733FF', '#BD33FF', '#FF33DB', '#FF3375'];
+            const particles = [];
+
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    angle: Math.random() * 2 * Math.PI,
+                    speed: Math.random() * 5 + 2,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 3 + 1,
+                    life: Math.random() * 30 + 30
+                });
+            }
+
+            return particles;
+        }
+
+        function drawFireworks(context, fireworks) {
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+            fireworks.forEach((firework, index) => {
+                firework.forEach((particle, particleIndex) => {
+                    particle.x += Math.cos(particle.angle) * particle.speed;
+                    particle.y += Math.sin(particle.angle) * particle.speed;
+                    particle.life--;
+
+                    context.fillStyle = particle.color;
+                    context.beginPath();
+                    context.arc(particle.x, particle.y, particle.size, 0, 2 * Math.PI);
+                    context.fill();
+
+                    if (particle.life <= 0) {
+                        firework.splice(particleIndex, 1);
+                    }
+                });
+
+                if (firework.length === 0) {
+                    fireworks.splice(index, 1);
+                }
+            });
+        }
+
+        function startFireworks() {
+            if (fireworksStarted) return;
+            fireworksStarted = true;
+
+            let wishes = [
+                "✨小小汪祝你2025年开开心心✨",
+                "🌟新的一年要像小小汪一样勇敢哦🌟",
+                "💖小小汪陪你一起成长ing💖",
+                "🎈2025年也要和小小汪做好朋友呀🎈",
+                "🌈小小汪送你一个大大的拥抱🌈",
+                "⭐新的一年要像星星一样闪亮⭐",
+                "🎉祝你2025年事事顺心🎉",
+                "🎊新年快乐，万事如意🎊",
+                "🎁愿你每天都充满惊喜🎁",
+                "🌈新的一年要像小小汪一样，勇敢追梦，给生活添点色彩哦！🌟",
+                "🍀新年到，小小汪陪你一起努力，迎接更精彩的冒险吧！🚀",
+                "🎶愿你生活如歌，快乐无忧🎶",
+                "✨愿2025年充满我的快乐陪伴，每一天都像小小汪一样，元气满满！",
+                "🌟愿你的2025年像星星一样闪耀，每一天都有小小汪的陪伴！",
+                "🎠愿你童心未泯，快乐无忧🎠",
+                "🎇愿你生活如烟花般绚烂🎇"
+            ];
+
+            function showWish() {
+                if (wishes.length === 0) return;
+                const index = Math.floor(Math.random() * wishes.length);
+                const wish = wishes.splice(index, 1)[0];
+                const text = document.createElement('div');
+                text.className = 'firework-text';
+                text.textContent = wish;
+                text.style.left = Math.random() * (window.innerWidth - 200) + 'px';
+                text.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+                document.body.appendChild(text);
+
+                // 淡入
+                setTimeout(() => {
+                    text.classList.add('show');
+                }, 100);
+
+                // 淡出并移除
+                setTimeout(() => {
+                    text.classList.remove('show');
+                    setTimeout(() => text.remove(), 1000);
+                }, 2000);
+            }
+
+            // 每秒显示一条祝福语
+            const wishInterval = setInterval(showWish, 1000);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.pointerEvents = 'none';
+            canvas.style.zIndex = '1';
+            document.body.appendChild(canvas);
+
+            const context = canvas.getContext('2d');
+            const fireworks = [];
+
+            // 创建密集的烟花效果
+            function createRandomFirework() {
+                const positions = [
+                    { x: Math.random() * canvas.width, y: canvas.height * 0.3 },
+                    { x: Math.random() * canvas.width, y: canvas.height * 0.5 },
+                    { x: Math.random() * canvas.width, y: canvas.height * 0.7 }
+                ];
+                
+                positions.forEach(pos => {
+                    fireworks.push(createFirework(pos.x, pos.y));
+                });
+            }
+
+            // 初始化更多烟花
+            for (let i = 0; i < 5; i++) {
+                createRandomFirework();
+            }
+
+            // 每隔一段时间创建一批烟花
+            const fireworkInterval = setInterval(() => {
+                if (Math.random() < 0.6) { // 提高创建概率到60%
+                    createRandomFirework();
+                }
+            }, 300); // 缩短间隔时间
+
+            // 10秒后停止烟花效果
+            setTimeout(() => {
+                clearInterval(fireworkInterval);
+                clearInterval(wishInterval);
+                fireworksStarted = false;
+                const texts = document.querySelectorAll('.firework-text');
+                texts.forEach(text => {
+                    text.classList.remove('show');
+                    setTimeout(() => text.remove(), 1000);
+                });
+                // 淡出效果
+                const fadeOut = setInterval(() => {
+                    canvas.style.opacity = Number(canvas.style.opacity || 1) - 0.1;
+                    if (Number(canvas.style.opacity) <= 0) {
+                        clearInterval(fadeOut);
+                        canvas.remove();
+                    }
+                }, 100);
+
+                // 显示最大的祝福语
+                showFinalWish();
+            }, 10000);
+
+            // 点击产生更大的烟花
+            canvas.addEventListener('click', (e) => {
+                const x = e.clientX;
+                const y = e.clientY;
+                // 创建一个更大的烟花
+                const largeFirework = createFirework(x, y);
+                largeFirework.forEach(particle => {
+                    particle.size *= 2;
+                    particle.speed *= 1.5;
+                    particle.life *= 1.2;
+                });
+                fireworks.push(largeFirework);
+            });
+
+            function animate() {
+                drawFireworks(context, fireworks);
+                if (fireworksStarted) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            animate();
+        }
+
+        function showFinalWish() {
+            const finalWish = document.createElement('div');
+            finalWish.className = 'firework-text';
+            finalWish.textContent = "🌈🍀我们总是要再见，为了再见 😊🌼";
+            finalWish.style.position = 'absolute';
+            finalWish.style.top = '50px';
+            finalWish.style.left = '50%';
+            finalWish.style.transform = 'translateX(-50%)';
+            finalWish.style.fontSize = '72px';
+            finalWish.style.zIndex = '3';
+            finalWish.style.whiteSpace = 'nowrap'; // 不换行 
+            document.body.appendChild(finalWish);
+
+            // 淡入
+            setTimeout(() => {
+                finalWish.classList.add('show');
+            }, 100);
+
+            // 持续三秒后淡出并移除
+            setTimeout(() => {
+                finalWish.classList.remove('show');
+                setTimeout(() => finalWish.remove(), 1000);
+            }, 3000);
+
+            // 添加第二行文字
+            const secondWish = document.createElement('div');
+            secondWish.className = 'firework-text';
+            secondWish.textContent = "bye~ 2024";
+            secondWish.style.position = 'absolute';
+            secondWish.style.top = '150px';
+            secondWish.style.left = '50%';
+            secondWish.style.transform = 'translateX(-50%)';
+            secondWish.style.fontSize = '72px';
+            secondWish.style.zIndex = '3';
+            secondWish.style.whiteSpace = 'nowrap'; // 不换行 
+            document.body.appendChild(secondWish);
+
+            // 淡入
+            setTimeout(() => {
+                secondWish.classList.add('show');
+            }, 100);
+
+            // 持续三秒后淡出并移除
+            setTimeout(() => {
+                secondWish.classList.remove('show');
+                setTimeout(() => secondWish.remove(), 1000);
+            }, 3000);
+        }
+
+        document.getElementById('fireworksButton').addEventListener('click', startFireworks);
+    </script>
+</body>
+</html>
